@@ -18,8 +18,8 @@ tbl_jobsFeed <- copy_to(sc,jobsFeed,name=spark_table_name(substitute(jobsFeed)))
 
 #  
 x <- tbl_jobsFeed %>% 
-  filter(city=="BERLIN") %>% 
-  select(author,category,city)%>% 
+  #filter(city=="BERLIN") %>% 
+  select(author,category,city,country)%>% 
   collect() 
 
 
@@ -35,7 +35,10 @@ for(i in 1:length(x$category)){
 } 
 
 # create columns for every possible language 
-mydf <- data.frame(x$category,x$author) 
+mydf <- data.frame(x$author, 
+                   x$city,
+                   x$country,
+                   x$category,) 
 for (i in categories) { 
   print(i) 
   eval(parse(text = paste0('mydf$',i,' <- rep(FALSE,length(x$category))'))) 
@@ -52,5 +55,9 @@ for(i in 1:length(x$category)){
 } 
 
 # perform Assiociation Rules
-rules_all <- apriori(mydf, parameter = list(supp = 0.1, conf = 0.1, target = "rules")) 
+rules_all <- apriori(mydf, 
+                     parameter = list(supp = 0.1, conf = 0.1, target = "rules"),
+                     # lhs -> target input classes, rhs -> target output classes
+                     #appearance = list(rhs=c("python"))
+                     ) 
 inspect(rules_all) 

@@ -39,7 +39,8 @@ title = c()
 category = c() 
 location = c() 
 city = c() 
-country  = c() 
+country  = c()
+id = c()
 
 for(i in 1:len){ 
   item = paste("//item[",i,"]/",sep="") 
@@ -48,7 +49,8 @@ for(i in 1:len){
   cat = xpathSApply(doc, paste(item,"category",sep=""), xmlValue) 
   loc = xpathSApply(doc, paste(item,"location",sep=""), xmlValue) 
   aut = xpathSApply(doc, paste(item,"author/name",sep=""), xmlValue) 
-  upd = xpathSApply(doc, paste(item,"updated",sep=""), xmlValue) 
+  upd = xpathSApply(doc, paste(item,"updated",sep=""), xmlValue)
+  iden = xpathSApply(doc, paste(item,"guid",sep=""), xmlValue)
   cou = "null" 
   cit = "null"
   
@@ -59,8 +61,7 @@ for(i in 1:len){
     loc = "null" 
     aut = "null" 
     upd = "null"
-    
-    print("Arschloch")
+    iden = "null"
   }
   # concatenate all category vaulues to one string 
   else{ 
@@ -76,7 +77,8 @@ for(i in 1:len){
       if(!is.na(city_transl[tolower(cit)])){ 
         cit = city_transl[tolower(cit)] 
       } 
-  } 
+  }
+  id[i] = iden
   author[i] = aut 
   date[i] = upd 
   title[i] = tit 
@@ -87,5 +89,5 @@ for(i in 1:len){
 }
 
 # write to data.frame and export as csv 
-df = data.frame(author,date,title,category,city,country)
+df = data.frame(id,author,date,title,category,city,country)
 write.csv(df, file = "data/jobsFeed.csv")
