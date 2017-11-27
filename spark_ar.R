@@ -52,5 +52,5 @@ for(i in 1:length(x$category)){
 } 
 
 # perform Assiociation Rules
-rules_all <- apriori(mydf) 
+rules_all <- apriori(mydf, parameter = list(supp = 0.1, conf = 0.1, target = "rules")) 
 inspect(rules_all) 
