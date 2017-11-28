@@ -1,13 +1,77 @@
 library(XML)
 library(curl) 
 library(RCurl)
-library(stringr)
+library(sparklyr) 
+library(dplyr) 
+library(stringr) 
+library(arules) 
 setwd("/Users/michaelstedler/PycharmProjects/BigDataProject")
 
-
-updateJobs <- function(df,new_df){
+# Association Rule Mining
+# @return: set of association rules
+associationRuleMining <- function(){
+  # Spark Configurations 
+  conf <- spark_config() 
   
-  #new_df = crawlJobs()
+  # build SPARK Connection 
+  sc <- spark_connect(master = "local") 
+  
+  # load dataframe 
+  jobsFeed <- read.csv("data/jobsFeed.csv") 
+  tbl_jobsFeed <- copy_to(sc,jobsFeed,name=spark_table_name(substitute(jobsFeed))) 
+  
+  #  
+  x <- tbl_jobsFeed %>% 
+    #filter(city=="BERLIN") %>% 
+    select(author,category,city,country)%>% 
+    collect() 
+  
+  # build list with all categories in filtered jobsFeed 
+  categories <- c()
+  for(i in 1:length(x$category)){ 
+    ls = strsplit(x$category[i],split = ";") 
+    for(cat in ls[[1]]){ 
+      if(!cat %in% categories){ 
+        categories <-c(categories,str_replace_all(cat,"[^[:alpha:]]","")) 
+      } 
+    } 
+  } 
+  
+  # create columns for every possible language 
+  mydf <- data.frame(x$author, 
+                     x$city,
+                     x$country,
+                     x$category) 
+  
+  for (i in categories) {
+    print(i)
+    eval(parse(text = paste0('mydf$',i,' <- rep(FALSE,length(x$category))'))) 
+  }  
+  
+  # load true for every language in inserat  
+  for(i in 1:length(x$category)){ 
+    ls = strsplit(x$category[i],split = ";") 
+    for(cat in ls[[1]]){ 
+      if(cat %in% categories){ 
+        eval(parse(text = paste0('mydf$',cat,'[',i,'] <- TRUE'))) 
+      } 
+    } 
+  } 
+  
+  # perform Assiociation Rules
+  rules_all <- apriori(mydf, 
+                       parameter = list(supp = 0.1, 
+                                        conf = 0.1, 
+                                        target = "rules",
+                                        minlen=2)
+                       )
+  return(rules_all)
+}
+
+# Update JobsFeed
+updateJobs <- function(df){
+  
+  new_df = crawlJobs()
 
   for(i in 1:nrow(new_df)) {
     if(!(new_df$id[i] %in% df$id) & !(new_df$id[i]=="null")){
@@ -21,9 +85,6 @@ updateJobs <- function(df,new_df){
               toString(new_df$city[1]),
               toString(new_df$country[1]))
       df <- rbind(df,app)
-    }
-    else{
-      cat("ID already exists",fill = TRUE)
     }
   }
   
@@ -93,7 +154,7 @@ crawlJobs <- function(){
     else{ 
       cat_2 = c() 
       for(x in cat){ 
-        cat_2 = c(cat_2,str_replace_all(x,"[^[:alnum:]]",""))  
+        cat_2 = c(cat_2,str_replace_all(x,"[^[:alpha:]]",""))  
       } 
       cat = paste(cat_2, collapse = ';') 
       cit = toupper(strsplit(loc,split=", ")[[1]][1]) 
@@ -125,16 +186,18 @@ df = c()
 drops <- c("X.1","X")
 # Main 
 if(!file.exists("data/jobsFeed.csv")){
-  print("No Job Database existing.")
-  print("Initialising Jobs.")
+  cat("No Job Database existing.",fill = TRUE)
+  cat("Initialising Jobs.",fill = TRUE)
   df = df[ , !(names(df) %in% drops)]
   df = crawlJobs()
 }else{
-  print("Job Database existing.")
+  cat("Job Database existing.",fill = TRUE)
   df = read.csv("data/jobsFeed.csv")
-  print("Updating Jobs.")
+  cat("Updating Jobs.",fill = TRUE)
   df = df[ , !(names(df) %in% drops)]
-  df = updateJobs(df=df, new_df = df) 
+  df = updateJobs(df=df) 
 }
 
 write.csv(df, file = "data/jobsFeed.csv")
+
+rules <- associationRuleMining()

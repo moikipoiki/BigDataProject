@@ -5,7 +5,6 @@ library(arules)
 
 setwd("/Users/michaelstedler/PycharmProjects/BigDataProject") 
 
-
 # Spark Configurations 
 conf <- spark_config() 
 
@@ -38,7 +37,7 @@ for(i in 1:length(x$category)){
 mydf <- data.frame(x$author, 
                    x$city,
                    x$country,
-                   x$category,) 
+                   x$category) 
 for (i in categories) { 
   print(i) 
   eval(parse(text = paste0('mydf$',i,' <- rep(FALSE,length(x$category))'))) 
@@ -56,7 +55,10 @@ for(i in 1:length(x$category)){
 
 # perform Assiociation Rules
 rules_all <- apriori(mydf, 
-                     parameter = list(supp = 0.1, conf = 0.1, target = "rules"),
+                     parameter = list(supp = 0.05, 
+                                      conf = 0.05, 
+                                      target = "rules",
+                                      minlen=2),
                      # lhs -> target input classes, rhs -> target output classes
                      #appearance = list(rhs=c("python"))
                      ) 
