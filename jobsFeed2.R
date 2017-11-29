@@ -4,7 +4,8 @@ library(RCurl)
 library(sparklyr) 
 library(dplyr) 
 library(stringr) 
-library(arules) 
+library(arules)
+source("weatherData.R")
 setwd("/Users/michaelstedler/PycharmProjects/BigDataProject")
 
 # Association Rule Mining
@@ -44,7 +45,6 @@ associationRuleMining <- function(){
                      x$category) 
   
   for (i in categories) {
-    print(i)
     eval(parse(text = paste0('mydf$',i,' <- rep(FALSE,length(x$category))'))) 
   }  
   
@@ -87,7 +87,7 @@ updateJobs <- function(df){
       df <- rbind(df,app)
     }
   }
-  
+  df = df[-which(df$id=="null"),]
   return(df)
 }
 
@@ -177,27 +177,44 @@ crawlJobs <- function(){
   
   # write to data.frame and export as csv 
   df = data.frame(id,author,date,title,category,city,country,stringsAsFactors=FALSE)
-  
+  df = df[-which(df$id=="null"),]
   return(df)
 }
 
-df = c()
+getWeatherData <- function(df){
+  ss_ = c()
+  for(i in 1:length(df$id)){
+    #print(df$city[i])
+    ss_[i] = as.numeric(getData("ss",df$city[i]))
+  }
+  df$ss = ss_
+  return(df)
+}
 
-drops <- c("X.1","X")
 # Main 
+
+df = c()
+drops <- c("X.1","X")
+
 if(!file.exists("data/jobsFeed.csv")){
   cat("No Job Database existing.",fill = TRUE)
   cat("Initialising Jobs.",fill = TRUE)
   df = df[ , !(names(df) %in% drops)]
   df = crawlJobs()
 }else{
-  cat("Job Database existing.",fill = TRUE)
-  df = read.csv("data/jobsFeed.csv")
-  cat("Updating Jobs.",fill = TRUE)
-  df = df[ , !(names(df) %in% drops)]
-  df = updateJobs(df=df) 
+  # cat("Job Database existing.",fill = TRUE)
+  # df = read.csv("data/jobsFeed.csv")
+  # cat("Updating Jobs.",fill = TRUE)
+  # df = df[ , !(names(df) %in% drops)]
+  # df = updateJobs(df=df) 
 }
 
 write.csv(df, file = "data/jobsFeed.csv")
 
-rules <- associationRuleMining()
+#rules <- associationRuleMining()
+
+loadData("/Users/michaelstedler/PycharmProjects/BigDataProject/data/")
+
+print(getData("ss", "HAMBURG"))
+allCities <- getStations("ss")
+allCities <- as.data.frame(allCities)
