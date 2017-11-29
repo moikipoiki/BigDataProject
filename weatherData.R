@@ -11,13 +11,14 @@ print(getData("ss", "HAMBURG"))
 print(getStations("ss"))
 
 loadData <- function(path){
-  
+  savePath <- getwd()
   setwd(path) # get path where files are stored 
   files <- list.files(pattern=".csv") # grap all stored files from the folder 
   for (file in files){
     var <- print(substr(file,1,nchar(file)-4))
     spark_read_csv(sc,var,file,memory=FALSE)
   }
+  setwd(savePath)
 }
 
 getData <- function(data, city){
