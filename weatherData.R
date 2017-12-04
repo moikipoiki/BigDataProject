@@ -43,6 +43,12 @@ getNewData <- function(data){
   
   query <- as.data.frame(query)
   
+  if(data == "ss"){
+    query <- query %>%
+      select_all() %>%
+      mutate(classes = round(classes*0.1))
+  }
+  
   # create new column 
   myClasses <- createClasses(query %>% select(classes), data)
   
@@ -53,35 +59,43 @@ getNewData <- function(data){
   return(query)
 }
 
-x = getNewData("cc")
-x %>%
-  distinct(classes) %>%
-  arrange(classes)
+
+# x <- getNewData("cc")
+# head(x)
+# x %>%
+#   select(classes,myClass) %>%
+#   distinct(myClass, classes) %>%
+#   arrange(classes)
+
+# x %>%
+#   select(classes) %>%
+#   distinct(classes) %>%
+#   arrange(classes)
 
 createClasses <- function(my, data){
   if(data=="cc"){
+    # https://en.wikipedia.org/wiki/Okta
     for(element in 1:length(t(my))){
-      if(my[element,]==1 | my[element,] == 2){
-        my[element,] = 999
-      }
-      else if(my[element,]==3 | my[element,] == 4){
-        my[element,] = 888
+      if(my[element,]==0 |my[element,]==1 | my[element,] == 2){
+        my[element,] = 0
       }
       else{
-        my[element,] = 111
+        my[element,] = 1
       }
+
     }  
   }
-  if(data=="dd"){
+  if(data=="ss"){
+
     for(element in 1:length(t(my))){
-      if(my[element,]==1 | my[element,] == 2){
-        my[element,] = 999
+      if(my[element,]==1 | my[element,] == 3 | my[element,] == 0 | my[element,] == 2){
+        my[element,] = 0
       }
-      else if(my[element,]==3 | my[element,] == 4){
-        my[element,] = 888
+      else if(my[element,]==4 | my[element,] == 5 | my[element,] == 6){
+        my[element,] = 1
       }
       else{
-        my[element,] = 111
+        my[element,] = 2
       }
     }  
   }
