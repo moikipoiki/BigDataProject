@@ -2,13 +2,13 @@ library(sparklyr)
 library(dplyr)
 library(base)
 
-# sc <- spark_connect(master = "local") # connect to spark 
-# #setwd("/home/julain/Documents/weather/ready/")
+# sc <- spark_connect(master = "local") # connect to spark
+# setwd("/home/julain/Documents/weather/ready/")
 # loadData(getwd())
-# 
+# #
 # print(getData("ss", "HAMBURG"))
-# 
-# print(getStations("ss"))
+# #
+# # print(getStations("ss"))
 
 loadData <- function(path){
   savePath <- getwd()
@@ -34,24 +34,28 @@ getData <- function(data, city){
   return(query)
 }
 
-
-x = getNewData("cc", "HAMBURG")
-
 getNewData <- function(data, city){
   query <- left_join(tbl(sc,data), tbl(sc,"stations"), by="STAID") %>%
     select(STAID,STANAME,DATE,rdata = starts_with(data), quality = starts_with("Q_")) %>%
     filter(quality == 0) %>%
-    group_by(STANAME) %>%
-    summarise_each(funs(mean)) 
+    group_by(STAID) %>%
+    summarize(ROUND(mean(rdata)))
   
   query <- as.data.frame(query)
-  
-  #query <- apply(query[,4],2,mean)
   return(query)
 }
-
-c
-calcualteCC(1)
+# 
+# x = getNewData("cc", "HAMBURG")
+# x
+# 
+# getData("cc", "ALFELD")
+# x[,which(x[,1] == "ALFELD")]
+# x[725,]
+# 
+# x[,1]
+# x[1,2]
+# c
+# calcualteCC(1)
 
 calcualteCC <- function(value){
   if(value == 1 ){
@@ -61,8 +65,6 @@ calcualteCC <- function(value){
     return(3)
   }
 }
-
-getStations("cc")
 
 getStations <- function(data){
   query <- left_join(tbl(sc,data), tbl(sc, "stations"), by="STAID") %>%
