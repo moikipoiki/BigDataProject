@@ -5,6 +5,9 @@ library(base)
 # sc <- spark_connect(master = "local") # connect to spark
 # setwd("/home/julain/Documents/weather/ready/")
 # loadData(getwd())
+# sc <- spark_connect(master = "local") # connect to spark
+# setwd("/home/julain/Documents/weather/ready/")
+# loadData(getwd())
 # #
 # print(getData("ss", "HAMBURG"))
 # #
@@ -39,11 +42,11 @@ getNewData <- function(data){
     select(STAID,STANAME,DATE,rdata = starts_with(data), quality = starts_with("Q_")) %>%
     filter(quality == 0) %>%
     group_by(STANAME) %>%
-    summarise(classes = ROUND(mean(rdata)))
+    summarise(classes = mean(rdata))
   
   query <- as.data.frame(query)
   
-  if(data == "ss"){
+  if(data == "ss" | data == "tg"){
     query <- query %>%
       select_all() %>%
       mutate(classes = round(classes*0.1))
@@ -59,13 +62,18 @@ getNewData <- function(data){
   return(query)
 }
 
-
-# x <- getNewData("cc")
+# 
+# x <- getNewData("ss")
 # head(x)
 # x %>%
 #   select(classes,myClass) %>%
 #   distinct(myClass, classes) %>%
 #   arrange(classes)
+# 
+# x %>%
+#   select_all %>%
+#   filter(classes==-13)
+
 
 # x %>%
 #   select(classes) %>%
@@ -76,7 +84,7 @@ createClasses <- function(my, data){
   if(data=="cc"){
     # https://en.wikipedia.org/wiki/Okta
     for(element in 1:length(t(my))){
-      if(my[element,]==0 |my[element,]==1 | my[element,] == 2){
+      if(my[element,]<=2){
         my[element,] = 0
       }
       else{
@@ -88,14 +96,31 @@ createClasses <- function(my, data){
   if(data=="ss"){
 
     for(element in 1:length(t(my))){
-      if(my[element,]==1 | my[element,] == 3 | my[element,] == 0 | my[element,] == 2){
+      if(my[element,]<=2 ){
         my[element,] = 0
       }
-      else if(my[element,]==4 | my[element,] == 5 | my[element,] == 6){
+      else if(my[element,] <= 6){
         my[element,] = 1
       }
       else{
         my[element,] = 2
+      }
+    }  
+  }
+  if(data=="tg"){
+    
+    for(element in 1:length(t(my))){
+      if(my[element,] <= 0 ){
+        my[element,] = 0
+      }
+      else if(my[element,] <=10){
+        my[element,] = 1
+      }
+      else if(my[element,] <=20){
+        my[element,] = 3
+      }
+      else{
+        my[element,] = 4
       }
     }  
   }
