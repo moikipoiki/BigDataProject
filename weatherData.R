@@ -43,68 +43,49 @@ getNewData <- function(data){
   
   query <- as.data.frame(query)
   
+  # create new column 
+  myClasses <- createClasses(query %>% select(classes), data)
+  
+  # append new columns
+  query <- query %>%
+    mutate(myClass = myClasses[,1])
   
   return(query)
 }
 
+x = getNewData("cc")
+x %>%
+  distinct(classes) %>%
+  arrange(classes)
 
-# x = getNewData("cc")
-# x
-# 
-# for(element in 1:length(t(my))){
-#   print(my[element,])
-#   if(my[element,]==1 | my[element,] == 2){
-#     my[element,] = 999
-#   }
-#   else if(my[element,]==3 | my[element,] == 4){
-#     my[element,] = 888
-#   }
-#   else{
-#     my[element,] = 111
-#   }
-# }
-# my
-# 
-# length(t(my))
-# my[1,]
-# 
-# my <- x %>%
-#   select(classes)
-# apply(my,2,function(x){
-#   return(x/2)
-#   }
-#   )
-# 
-# apply(my,2,function(x){
-#   if(x == 1 ){
-#     return(2)
-#   }
-#   else{
-#     return(3)
-#   }
-# }
-# 
-#   
-#   )
-# 
-# my <- calcualteCC(my)
-# calcualteCC(my[,1])
-# 
-# getData("cc", "ALFELD")
-# x[,which(x[,1] == "ALFELD")]
-# x[725,]
-# x[,1]
-# x[1,2]
-# c
-# calcualteCC(1)
-
-calcualteCC <- function(value){
-  if(value == 1 ){
-    return(2)
+createClasses <- function(my, data){
+  if(data=="cc"){
+    for(element in 1:length(t(my))){
+      if(my[element,]==1 | my[element,] == 2){
+        my[element,] = 999
+      }
+      else if(my[element,]==3 | my[element,] == 4){
+        my[element,] = 888
+      }
+      else{
+        my[element,] = 111
+      }
+    }  
   }
-  else{
-    return(3)
+  if(data=="dd"){
+    for(element in 1:length(t(my))){
+      if(my[element,]==1 | my[element,] == 2){
+        my[element,] = 999
+      }
+      else if(my[element,]==3 | my[element,] == 4){
+        my[element,] = 888
+      }
+      else{
+        my[element,] = 111
+      }
+    }  
   }
+  return(my)
 }
 
 getStations <- function(data){
