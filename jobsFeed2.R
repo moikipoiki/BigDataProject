@@ -5,21 +5,78 @@ library(sparklyr)
 library(dplyr) 
 library(stringr) 
 library(arules)
-source("weatherData.R")
+#library(plyr)
+library(base)
 setwd("/Users/michaelstedler/PycharmProjects/BigDataProject")
+source("weatherData.R")
+
+
+weather_transformation <- function(df){
+
+    city_names = unique(df$city)
+    # tg = mean temperature | 0 = under OC, 1 = under 10C , 2 = under 20C, 3 = under 30C
+    # cc = cloudly | 0 = not cloudy, 1 = cloudy
+    # ss = sunnshine in hours | 0 = less, 1 = middle, 3 = much
+    # sd = mean snow depth in cm |  = 0cm, 1 = <10cm, 2 = <20cm, 3 = >=20cm
+    temp_df_cc <- getNewData("cc")
+    temp_df_tg <- getNewData("tg")
+    temp_df_ss <- getNewData("ss")
+    temp_df_sd <- getNewData("sd")
+    
+    
+    
+    df$cc = 0
+    df$tg = 0
+    df$ss = 0
+    df$sd = 0
+    
+    for(city in city_names){
+      cc = as.numeric(temp_df_cc %>%
+            select(classes, STANAME) %>%
+            filter(STANAME==city) %>%
+            select(classes))
+      
+      if(!is.na(cc)){
+        df$cc[which(df$city==city)] = cc
+      }else{
+        df$cc[which(df$city==city)] = -10
+      }
+    }
+    
+    df = df[-which(df$cc == "-10"),]
+    df$cc = as.factor(df$cc)
+    return(df)
+}
+
+arule_mining <- function(df){
+  # perform Assiociation Rules
+  colnam = colnames(df)
+  # exclude these attributes from the right hand side of rules
+  # df = df[,colnam != c("author","city","country","category","cc")]
+  
+  rules <- apriori(df, 
+                       parameter = list(supp = 0.1, 
+                                        conf = 0.1,
+                                        minlen=2
+                                    )
+           )
+  
+  r = subset(rules, !(rhs %pin% "city"))
+  r = subset(r, !(rhs %pin% "country"))
+  r = subset(r, !(rhs %pin% "author"))
+  r = subset(r, !(rhs %pin% "category"))
+  r = subset(r, !(rhs %pin% "cc"))
+  
+  return(r)
+}
+
 
 # Association Rule Mining
 # @return: set of association rules
-associationRuleMining <- function(){
-  # Spark Configurations 
-  conf <- spark_config() 
-  
-  # build SPARK Connection 
-  sc <- spark_connect(master = "local") 
-  
+category_transformation <- function(jobsFeed){
+
   # load dataframe 
-  jobsFeed <- read.csv("data/jobsFeed.csv") 
-  tbl_jobsFeed <- copy_to(sc,jobsFeed,name=spark_table_name(substitute(jobsFeed))) 
+  tbl_jobsFeed <- copy_to(sc,jobsFeed,name=spark_table_name(substitute(jobsFeed)),overwrite=TRUE) 
   
   #  
   x <- tbl_jobsFeed %>% 
@@ -38,11 +95,18 @@ associationRuleMining <- function(){
     } 
   } 
   
-  # create columns for every possible language 
-  mydf <- data.frame(x$author, 
-                     x$city,
-                     x$country,
-                     x$category) 
+  # create columns for every possible language
+  author = x$author
+  city = x$city
+  country = x$country
+  category = x$category
+  
+  mydf <- data.frame(author, 
+                     city,
+                     country,
+                     category) 
+  
+  #rename(mydf, c("x.author"="author", "x.city"="city","x.country"="country","x.catgory"="category"))
   
   for (i in categories) {
     eval(parse(text = paste0('mydf$',i,' <- rep(FALSE,length(x$category))'))) 
@@ -56,16 +120,8 @@ associationRuleMining <- function(){
         eval(parse(text = paste0('mydf$',cat,'[',i,'] <- TRUE'))) 
       } 
     } 
-  } 
-  
-  # perform Assiociation Rules
-  rules_all <- apriori(mydf, 
-                       parameter = list(supp = 0.1, 
-                                        conf = 0.1, 
-                                        target = "rules",
-                                        minlen=2)
-                       )
-  return(rules_all)
+  }
+  return(mydf)
 }
 
 # Update JobsFeed
@@ -195,6 +251,9 @@ getWeatherData <- function(df){
 
 df = c()
 drops <- c("X.1","X")
+# Start spark
+conf <- spark_config() 
+sc <- spark_connect(master = "local")
 
 if(!file.exists("data/jobsFeed.csv")){
   cat("No Job Database existing.",fill = TRUE)
@@ -202,19 +261,18 @@ if(!file.exists("data/jobsFeed.csv")){
   df = df[ , !(names(df) %in% drops)]
   df = crawlJobs()
 }else{
-  # cat("Job Database existing.",fill = TRUE)
-  # df = read.csv("data/jobsFeed.csv")
-  # cat("Updating Jobs.",fill = TRUE)
-  # df = df[ , !(names(df) %in% drops)]
-  # df = updateJobs(df=df) 
+  cat("Job Database existing.",fill = TRUE)
+  df = read.csv("data/jobsFeed.csv")
+  cat("Updating Jobs.",fill = TRUE)
+  df = df[ , !(names(df) %in% drops)]
+  #df = updateJobs(df=df) 
 }
 
 write.csv(df, file = "data/jobsFeed.csv")
 
-#rules <- associationRuleMining()
-
 loadData("/Users/michaelstedler/PycharmProjects/BigDataProject/data/")
+setwd("/Users/michaelstedler/PycharmProjects/BigDataProject")
 
-print(getData("ss", "HAMBURG"))
-allCities <- getStations("ss")
-allCities <- as.data.frame(allCities)
+# transform categories
+mydf = category_transformation(df)
+mydf = weather_transformation(mydf)
