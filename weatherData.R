@@ -2,13 +2,13 @@ library(sparklyr)
 library(dplyr)
 library(base)
 
-sc <- spark_connect(master = "local") # connect to spark 
-setwd("/home/julain/Documents/weather/ready/")
-loadData(getwd())
-
-print(getData("ss", "HAMBURG"))
-
-print(getStations("ss"))
+# sc <- spark_connect(master = "local") # connect to spark 
+# #setwd("/home/julain/Documents/weather/ready/")
+# loadData(getwd())
+# 
+# print(getData("ss", "HAMBURG"))
+# 
+# print(getStations("ss"))
 
 loadData <- function(path){
   savePath <- getwd()
@@ -34,10 +34,41 @@ getData <- function(data, city){
   return(query)
 }
 
+
+x = getNewData("cc", "HAMBURG")
+
+getNewData <- function(data, city){
+  query <- left_join(tbl(sc,data), tbl(sc,"stations"), by="STAID") %>%
+    select(STAID,STANAME,DATE,rdata = starts_with(data), quality = starts_with("Q_")) %>%
+    filter(quality == 0) %>%
+    group_by(STANAME) %>%
+    summarise_each(funs(mean)) 
+  
+  query <- as.data.frame(query)
+  
+  #query <- apply(query[,4],2,mean)
+  return(query)
+}
+
+c
+calcualteCC(1)
+
+calcualteCC <- function(value){
+  if(value == 1 ){
+    return(2)
+  }
+  else{
+    return(3)
+  }
+}
+
+getStations("cc")
+
 getStations <- function(data){
   query <- left_join(tbl(sc,data), tbl(sc, "stations"), by="STAID") %>%
     select(STANAME,STAID) %>% 
-    distinct(STANAME)
+    distinct(STANAME,STAID)
+  return(query)
 }
 
 isStationLike <- function(data, city){
