@@ -2,6 +2,14 @@ library(sparklyr)
 library(dplyr)
 library(base)
 
+#data
+# tg = mean temperature | 0 = under OC, 1 = under 10C , 2 = under 20C, 3 = under 30C
+# cc = cloudly | 0 = not cloudy, 1 = cloudy
+# ss = sunnshine in hours | 0 = less, 1 = middle, 3 = much
+# sd = mean snow depth in cm |  = 0cm, 1 = <10cm, 2 = <20cm, 3 = >=20cm
+
+
+
 # sc <- spark_connect(master = "local") # connect to spark
 # setwd("/home/julain/Documents/weather/ready/")
 # loadData(getwd())
@@ -63,16 +71,16 @@ getNewData <- function(data){
 }
 
 # 
-# x <- getNewData("ss")
-# head(x)
-# x %>%
-#   select(classes,myClass) %>%
-#   distinct(myClass, classes) %>%
-#   arrange(classes)
-# 
-# x %>%
-#   select_all %>%
-#   filter(classes==-13)
+x <- getNewData("sd")
+head(x)
+x %>%
+  select(classes,myClass) %>%
+  distinct(myClass, classes) %>%
+  arrange(classes)
+
+x %>%
+  select_all %>%
+  filter(classes==204.75)
 
 
 # x %>%
@@ -117,10 +125,27 @@ createClasses <- function(my, data){
         my[element,] = 1
       }
       else if(my[element,] <=20){
-        my[element,] = 3
+        my[element,] = 2
       }
       else{
-        my[element,] = 4
+        my[element,] = 3
+      }
+    }  
+  }
+  if(data=="sd"){
+    
+    for(element in 1:length(t(my))){
+      if(my[element,] <= 0 ){
+        my[element,] = 0
+      }
+      else if(my[element,] <=10){
+        my[element,] = 1
+      }
+      else if(my[element,] <=20){
+        my[element,] = 2
+      }
+      else{
+        my[element,] = 3
       }
     }  
   }
