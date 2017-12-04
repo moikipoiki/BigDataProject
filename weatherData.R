@@ -34,24 +34,65 @@ getData <- function(data, city){
   return(query)
 }
 
-getNewData <- function(data, city){
+getNewData <- function(data){
   query <- left_join(tbl(sc,data), tbl(sc,"stations"), by="STAID") %>%
     select(STAID,STANAME,DATE,rdata = starts_with(data), quality = starts_with("Q_")) %>%
     filter(quality == 0) %>%
-    group_by(STAID) %>%
-    summarize(ROUND(mean(rdata)))
+    group_by(STANAME) %>%
+    summarise(classes = ROUND(mean(rdata)))
   
   query <- as.data.frame(query)
+  
+  
   return(query)
 }
-# 
-# x = getNewData("cc", "HAMBURG")
+
+
+# x = getNewData("cc")
 # x
+# 
+# for(element in 1:length(t(my))){
+#   print(my[element,])
+#   if(my[element,]==1 | my[element,] == 2){
+#     my[element,] = 999
+#   }
+#   else if(my[element,]==3 | my[element,] == 4){
+#     my[element,] = 888
+#   }
+#   else{
+#     my[element,] = 111
+#   }
+# }
+# my
+# 
+# length(t(my))
+# my[1,]
+# 
+# my <- x %>%
+#   select(classes)
+# apply(my,2,function(x){
+#   return(x/2)
+#   }
+#   )
+# 
+# apply(my,2,function(x){
+#   if(x == 1 ){
+#     return(2)
+#   }
+#   else{
+#     return(3)
+#   }
+# }
+# 
+#   
+#   )
+# 
+# my <- calcualteCC(my)
+# calcualteCC(my[,1])
 # 
 # getData("cc", "ALFELD")
 # x[,which(x[,1] == "ALFELD")]
 # x[725,]
-# 
 # x[,1]
 # x[1,2]
 # c
