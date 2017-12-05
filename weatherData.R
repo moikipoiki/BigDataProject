@@ -70,23 +70,9 @@ getNewData <- function(data){
   return(query)
 }
 
-# 
-x <- getNewData("sd")
-head(x)
-x %>%
-  select(classes,myClass) %>%
-  distinct(myClass, classes) %>%
-  arrange(classes)
-
-x %>%
-  select_all %>%
-  filter(classes==204.75)
-
-
-# x %>%
-#   select(classes) %>%
-#   distinct(classes) %>%
-#   arrange(classes)
+getCountries <- function(data){
+  
+}
 
 createClasses <- function(my, data){
   if(data=="cc"){
