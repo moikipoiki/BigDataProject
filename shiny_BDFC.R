@@ -1,6 +1,7 @@
 library(ggplot2)
 library(dplyr)
 library(shiny)
+source("shiny_function.R")
 
 ####  UI #####
 ui <- fluidPage(
@@ -89,12 +90,7 @@ server <- function(input, output) {
   
 }
 
-test <- function(support, conf, snow, rain, sun, temp){
-  var <- data.frame(
-    Name=c("Python", "C"), 
-    Conf=c("123", "456")
-  )
-}
+
 
 
 
