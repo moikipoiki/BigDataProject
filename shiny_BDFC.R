@@ -6,7 +6,6 @@ source("shiny_function.R")
 ####  UI #####
 ui <- fluidPage(
   titlePanel("Big Data Project"),
-
   
   fluidPage(
     
@@ -79,7 +78,7 @@ server <- function(input, output) {
     #                          input$snow)),
     #   stringsAsFactors = FALSE)
     data.frame(
-      test(input$support, input$conf, input$snow, input$rain, input$sun, input$temp)
+      test(input$support, input$conf, input$snow, input$rain, input$sun, input$temperature)
     )
   })
   
@@ -89,8 +88,6 @@ server <- function(input, output) {
 
   
 }
-
-
 
 
 
