@@ -2,6 +2,8 @@ library(MASS)
 library(psych)
 library(readr)
 library(nnet)
+library(e1071)
+library(dplyr)
 
 WhiteWine <- read_delim("/Users/michaelstedler/PycharmProjects/BigDataProject/predictiveAnalytics/data/winequality-white.csv", 
                         ";", 
@@ -86,9 +88,10 @@ describe(WhiteWine)
 cor(WhiteWine[,-12])
 # covariance matrix with spearman algorithm
 cor(WhiteWine[,-12], method="spearman")
-# scatterplot of all variables
-pairs(WhiteWine[,-12], gap=0, pch=10, cex=0.4, col="darkblue")
-title(sub="Scatterplot of Chemical Attributes", cex=0.8)
+
+# scatterplot of all variables, takes much time for computation
+# pairs(WhiteWine[,-12], gap=0, pch=10, cex=0.4, col="darkblue")
+# title(sub="Scatterplot of Chemical Attributes", cex=0.8)
 
 #######################################################################
 #######################################################################
@@ -134,7 +137,7 @@ WWTest20 <- WhiteWineLib[-indexes,]
 data_train = as.data.frame(apply(WWTrain80[],2,function(x){(x-min(x)) / (max(x) - min(x))}))
 data_test = as.data.frame(apply(WWTest20[],2,function(x){(x-min(x)) / (max(x) - min(x))}))
 
-data_train$quality = WWtrain80$quality
+data_train$quality = WWTrain80$quality
 data_test$quality = WWTest20$quality
 
 data_train$quality = as.factor(data_train$quality)
@@ -151,6 +154,7 @@ neural_net = nnet::nnet(quality~.,
                   decay=5e-4, 
                   maxit=3200,
                   entropy=TRUE)
+
 # WIP for optimzing hyperparameters
 # fitControl <- trainControl(method = "repeatedcv", 
 #                            number = 10, 
@@ -169,21 +173,37 @@ neural_net = nnet::nnet(quality~.,
 #                  tuneGrid = nnetGrid,
 #                  verbose = FALSE)
 
+# Multinomial Logistic Regression with NeuralNets
+multinom_model = multinom(quality~., data = data_train)
+summary(multinom_model)
+
+# Multinomial Logstic Regression with Generalized Additive Model
+# http://dx.doi.org/10.1080/01621459.2016.1180986
+# xdf = data_train
+# xdf = sapply(xdf,numeric)
+# gam_multinom_model = gam::gam(as.factor(quality)~., data = xdf)
+
+# Support Vector Machine
+svm_model = svm(quality~.,data=data_train)
+summary(svm_model)
+
+# Linear Regression
+lm_model = lm(as.numeric(quality)~.,data=data_train)
 
 #######################################################################
 #######################################################################
 #######################################################################
-# MODEL EVALUATION
-predictions = predict(neural_net, data_test,type="class")
+# Neural Network
+predictions = predict(neural_net, data_test,type="class");
 
-correct = 0
+correct = 0;
 for(i in 1:length(predictions)){
-  if(predictions[i]==data_test$quality[i]){
+  if(predictions[i] == data_test$quality[i]){
     correct = correct + 1
   }
 }
 print("Accuracy on Test Data:")
-correct/length(predictions)
+nn_test_acc <- correct/length(predictions)
 
 predictions = predict(neural_net, data_train,type="class")
 
@@ -194,6 +214,98 @@ for(i in 1:length(predictions)){
   }
 }
 print("Accuracy on Train Data:")
-correct/length(predictions)
+nn_train_acc <- correct/length(predictions)
+
+# Multinomial Regression
+multinom_predictions = predict(multinom_model, newdata = data_test)
+
+correct = 0
+for(i in 1:length(multinom_predictions)){
+  if(as.numeric(multinom_predictions[i]) == as.numeric(data_test$quality[i])){
+    correct = correct + 1
+  }
+}
+print("Accuracy on Test Data:")
+mn_test_acc <- correct/length(multinom_predictions)
+
+multinom_predictions = predict(multinom_model, data_train,type="class")
+
+correct = 0
+for(i in 1:length(multinom_predictions)){
+  if(multinom_predictions[i]==data_train$quality[i]){
+    correct = correct + 1
+  }
+}
+print("Accuracy on Train Data:")
+mn_train_acc <- correct/length(multinom_predictions)
+
+# Support Vector Machine
+svm_predictions = predict(svm_model,data_test)
+
+correct = 0
+for(i in 1:length(svm_predictions)){
+  if(as.numeric(svm_predictions[i]) == as.numeric(data_test$quality[i])){
+    correct = correct + 1
+  }
+}
+print("Accuracy on Test Data:")
+svm_test_acc <- correct/length(svm_predictions)
+
+svm_predictions = predict(svm_model, data_train,type="class")
+
+correct = 0
+for(i in 1:length(svm_predictions)){
+  if(svm_predictions[i] == data_train$quality[i]){
+    correct = correct + 1
+  }
+}
+print("Accuracy on Train Data:")
+svm_train_acc <- correct/length(svm_predictions)
+
+
+# Linear Regression
+lm_predictions = predict(lm_model,data_test)
+lm_predictions = round(lm_predictions)
+
+correct = 0
+for(i in 1:length(lm_predictions)){
+  if(as.numeric(lm_predictions[i]) == as.numeric(data_test$quality[i])){
+    correct = correct + 1
+  }
+}
+print("Accuracy on Test Data:")
+lm_test_acc <- correct/length(lm_predictions)
+
+lm_predictions = predict(lm_model, data_train,type="class")
+
+correct = 0
+for(i in 1:length(lm_predictions)){
+  if(lm_predictions[i] == data_train$quality[i]){
+    correct = correct + 1
+  }
+}
+print("Accuracy on Train Data:")
+lm_train_acc <- correct/length(lm_predictions)
+
+
+
+
+
+
+
+results <- data.frame(
+  name = c("svm_test_acc", "svm_train_acc", "nn_test_acc", "nn_train_acc", "mn_test_acc", "mn_train_acc"),
+  acc = c(svm_test_acc, svm_train_acc, nn_test_acc, nn_train_acc, mn_test_acc, mn_train_acc ),
+  mode = c("test", "train", "test", "train", "test", "train")
+)
+
+results %>%
+  select_all() %>%
+  filter(mode=="test")
+
+results %>%
+  select_all() %>%
+  filter(mode=="train")
+
 
 
