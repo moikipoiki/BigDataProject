@@ -1,3 +1,5 @@
+library(shiny)
+library(ggplot2)
 library(XML)
 library(curl) 
 library(RCurl)
@@ -9,6 +11,7 @@ library(arules)
 library(base)
 setwd("/Users/michaelstedler/PycharmProjects/BigDataProject")
 source("weatherData.R")
+source("shiny_function.R")
 
 
 weather_transformation <- function(df){
@@ -48,16 +51,54 @@ weather_transformation <- function(df){
     return(df)
 }
 
-arule_mining <- function(df){
+# get rules for specific pattern
+getRules <- function(arules, cc_value, ss_value, sd_value, tg_value) {
+  rhs = tryCatch(
+    {
+      subrules = arules
+      if(!cc_value==999){
+        subrules = subset(subrules,lhs %in% paste0("cc=",cc_value))
+      }
+      if(!ss_value==999){
+        subrules = subset(subrules,lhs %in% paste0("ss=",ss_value))  
+      }
+      if(!sd_value==999){
+        subrules = subset(subrules,lhs %in% paste0("sd=",sd_value)) 
+      }
+      if(!tg_value==999){
+        subrules = subset(subrules,lhs %in% paste0("tg=",tg_value)) 
+      }
+      rhs = data.frame(name = labels(rhs(subrules), setStart = "", setEnd = ""),
+                       subrules@quality)
+      rhs <- rhs %>%
+        select_all() %>%
+        group_by(name) %>%
+        top_n(1,support) %>%
+        top_n(1,confidence) %>%
+        top_n(1,lift) %>%
+        top_n(1,count) %>%
+        distinct(name,support,confidence, lift,count)
+      
+      return(rhs)
+    }, error = function(e) {
+      cat("No Rules found!",fill=TRUE)
+      return(NULL)
+    }
+  )
+  return(rhs)
+}
+
+# set rules
+arule_mining <- function(df,s,c,len){
   # perform Assiociation Rules
   colnam = colnames(df)
   # exclude these attributes from the right hand side of rules
   # df = df[,colnam != c("author","city","country","category","cc")]
   
   rules <- apriori(df, 
-                       parameter = list(supp = 0.1, 
-                                        conf = 0.1,
-                                        minlen=2
+                       parameter = list(supp = s, 
+                                        conf = c,
+                                        minlen = len
                                     )
            )
   
@@ -66,13 +107,37 @@ arule_mining <- function(df){
   r = subset(r, !(rhs %pin% "author"))
   r = subset(r, !(rhs %pin% "category"))
   r = subset(r, !(rhs %pin% "cc"))
+  r = subset(r, !(rhs %pin% "ss"))
+  r = subset(r, !(rhs %pin% "sd"))
+  r = subset(r, !(rhs %pin% "tg"))
+  r = subset(r, !(lhs %pin% "country"))
+  r = subset(r, !(lhs %pin% "city"))
+  # r = subset(r, !(lhs %pin% "mysql"))
+  # r = subset(r, !(lhs %pin% "php"))
+  # r = subset(r, !(lhs %pin% "javascript"))
+  # r = subset(r, !(lhs %pin% "nodejs"))
+  # r = subset(r, !(lhs %pin% "reactjs"))
+  # r = subset(r, !(lhs %pin% "css"))
+  # r = subset(r, !(lhs %pin% "html"))
+  
+  # delete all programming languages from lhs - not running sufficient
+  # categories <- c()
+  # for(i in 1:length(mydf$category)){ 
+  #   ls = strsplit(as.character(mydf$category[i]),split = ";") 
+  #   for(cat in ls[[1]]){ 
+  #     if(!cat %in% categories){ 
+  #       categories <-c(categories,str_replace_all(cat,"[^[:alpha:]]","")) 
+  #     } 
+  #   } 
+  # } 
+  # 
+  # for(i in 1:length(categories)){
+  #     r = subset(r, !(lhs %pin% categories[i]))
+  # }
   
   return(r)
 }
 
-
-# Association Rule Mining
-# @return: set of association rules
 category_transformation <- function(jobsFeed){
 
   # load dataframe 
@@ -80,7 +145,6 @@ category_transformation <- function(jobsFeed){
   
   #  
   x <- tbl_jobsFeed %>% 
-    #filter(city=="BERLIN") %>% 
     select(author,category,city,country)%>% 
     collect() 
   
@@ -128,22 +192,22 @@ category_transformation <- function(jobsFeed){
 updateJobs <- function(df){
   
   new_df = crawlJobs()
-
+  
   for(i in 1:nrow(new_df)) {
     if(!(new_df$id[i] %in% df$id) & !(new_df$id[i]=="null")){
-      
       cat("adding new ID",fill = TRUE)
-      app = c(toString(new_df$id[1]), 
-              toString(new_df$author[1]), 
-              toString(new_df$date[1]),
-              toString(new_df$title[1]),
-              toString(new_df$category[1]),
-              toString(new_df$city[1]),
-              toString(new_df$country[1]))
+      app = c(toString(new_df$id[i]),
+              toString(new_df$author[i]),
+              toString(new_df$date[i]),
+              toString(new_df$title[i]),
+              toString(new_df$category[i]),
+              toString(new_df$city[i]),
+              toString(new_df$country[i]))
       df <- rbind(df,app)
     }
   }
-  df = df[-which(df$id=="null"),]
+  drops <- c("X")
+  df = df[ , !(names(df) %in% drops)]
   return(df)
 }
 
@@ -262,10 +326,10 @@ if(!file.exists("data/jobsFeed.csv")){
   df = crawlJobs()
 }else{
   cat("Job Database existing.",fill = TRUE)
-  df = read.csv("data/jobsFeed.csv")
+  df = read.csv("data/jobsFeed.csv",stringsAsFactors = FALSE)
   cat("Updating Jobs.",fill = TRUE)
   df = df[ , !(names(df) %in% drops)]
-  #df = updateJobs(df=df) 
+  df = updateJobs(df=df) 
 }
 
 write.csv(df, file = "data/jobsFeed.csv")
@@ -276,3 +340,6 @@ setwd("/Users/michaelstedler/PycharmProjects/BigDataProject")
 # transform categories
 mydf = category_transformation(df)
 mydf = weather_transformation(mydf)
+
+# association rules
+rules = arule_mining(mydf)
