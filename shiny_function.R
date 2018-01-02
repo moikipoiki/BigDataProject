@@ -1,3 +1,9 @@
+test <- function(support, conf, snow, rain, sun, temp){
+  var <- data.frame(
+    Name=c("Python", "C"), 
+    Conf=c("1234", "456"),
+    Country=c("DE", "FR")
+  )
 test <- function(s, conf, snow, rain, sun, temp){
   
   print(paste("support:",s))

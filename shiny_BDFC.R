@@ -8,7 +8,6 @@ ui <- fluidPage(
   titlePanel("Big Data Project"),
   
   fluidPage(
-    
     # Copy the chunk below to make a group of checkboxes
     checkboxGroupInput("programming", label = h3("Programming Languages"), 
                        choices = list("Not relevant" = 999,"Python" = 1, "PHP" = 2, "JavaScript" = 3, "C" = 4, "Java" = 5),

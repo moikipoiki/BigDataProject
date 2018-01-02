@@ -8,18 +8,19 @@ library(base)
 # ss = sunnshine in hours | 0 = less, 1 = middle, 3 = much
 # sd = mean snow depth in cm |  = 0cm, 1 = <10cm, 2 = <20cm, 3 = >=20cm
 
+sc <- spark_connect(master = "local") # connect to spark
+setwd("/home/julain/Documents/weather/ready/")
+loadData(getwd())
+sc <- spark_connect(master = "local") # connect to spark
 
-
-# sc <- spark_connect(master = "local") # connect to spark
-# setwd("/home/julain/Documents/weather/ready/")
-# loadData(getwd())
-# sc <- spark_connect(master = "local") # connect to spark
-# setwd("/home/julain/Documents/weather/ready/")
-# loadData(getwd())
 # #
 # print(getData("ss", "HAMBURG"))
 # #
 # # print(getStations("ss"))
+
+cc <- getNewData("cc")
+ss <- getNewData("ss")
+sd <- getNewData("sd")
 
 loadData <- function(path){
   savePath <- getwd()
